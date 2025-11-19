@@ -14,9 +14,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.calica.stupidble.data.BleConnectionManager
 import com.calica.stupidble.data.repository.BleRepository
 import com.calica.stupidble.ui.devicedetail.DeviceDetailScreen
 import com.calica.stupidble.ui.devicedetail.DeviceDetailViewModel
+import com.calica.stupidble.ui.devicedetail.DeviceDetailViewModelFactory
 import com.calica.stupidble.ui.scanner.ScannerScreen
 import com.calica.stupidble.ui.scanner.ScannerViewModel
 import com.calica.stupidble.ui.scanner.ScannerViewModelFactory
@@ -27,15 +29,17 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
 class MainActivity : ComponentActivity() {
     private lateinit var bleRepository: BleRepository
+    private lateinit var bleConnectionManager: BleConnectionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         bleRepository = BleRepository(this)
+        bleConnectionManager = BleConnectionManager(this)
 
         enableEdgeToEdge()
         setContent {
             StupidbleTheme {
-                BleApp(bleRepository)
+                BleApp(bleRepository, bleConnectionManager)
             }
         }
     }
@@ -43,13 +47,13 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun BleApp(bleRepository: BleRepository) {
+fun BleApp(bleRepository: BleRepository, bleConnectionManager: BleConnectionManager) {
     val permissionsState = rememberMultiplePermissionsState(
         permissions = PermissionHelper.REQUIRED_PERMISSIONS.toList()
     )
 
     if (permissionsState.allPermissionsGranted) {
-        BleNavigation(bleRepository)
+        BleNavigation(bleRepository, bleConnectionManager)
     } else {
         Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
             Column(
@@ -70,12 +74,14 @@ fun BleApp(bleRepository: BleRepository) {
 }
 
 @Composable
-fun BleNavigation(bleRepository: BleRepository) {
+fun BleNavigation(bleRepository: BleRepository, bleConnectionManager: BleConnectionManager) {
     val navController = rememberNavController()
     val scannerViewModel: ScannerViewModel = viewModel(
         factory = ScannerViewModelFactory(bleRepository)
     )
-    val deviceDetailViewModel: DeviceDetailViewModel = viewModel()
+    val deviceDetailViewModel: DeviceDetailViewModel = viewModel(
+        factory = DeviceDetailViewModelFactory(bleConnectionManager)
+    )
 
     Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
         NavHost(
